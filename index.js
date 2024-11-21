@@ -68,7 +68,11 @@ app.listen(port, () => {
   console.log(`server is running by gadget shop on port, ${port}`);
 });
 
-// arifa
+// arifa@gmail.com
+// asma@gmail.com
 // Password123!
-// 
-// 
+// git add .
+// git commit -m "    "
+// git push
+// npm run dev
+// nodemon
