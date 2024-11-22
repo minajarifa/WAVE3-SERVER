@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.port || 4000;
 // middleware
@@ -128,8 +128,8 @@ async function run() {
       const sortOption = sort === "asc" ? 1 : -1;
       const products = await productCollection
         .find(query)
-        .skip((pageNumber - 1) * limitNumber)
-        .limit(limitNumber)
+        // .skip((pageNumber - 1) * limitNumber)
+        // .limit(limitNumber)
         .sort({ price: sortOption })
         .toArray();
       const totalProodacts = await productCollection.countDocuments(query);
@@ -150,6 +150,53 @@ async function run() {
         category: categoryList,
         totalProodacts,
       });
+    });
+
+    // add to wish list by buyer
+    app.patch("/wishList/add", async (req, res) => {
+      const { userEmail, productId } = req.body;
+      const result = await userCollection.updateOne(
+        { email: userEmail },
+        { $addToSet: { wishList: new ObjectId(String(productId)) } }
+      );
+      res.send(result);
+    });
+    // get data from wish lish by buyer
+    app.get(
+      "/wishList/:userId",
+      verifyJWT,
+      verifyBuyerToken,
+      async (req, res) => {
+        const userId = req.params.userId;
+        const user = await userCollection.findOne({
+          _id: new ObjectId(userId),
+        });
+        if (!user) {
+          return res.status(404).send({ message: "User not found" });
+        }
+        const wishList = await productCollection
+          .find({ _id: { $in: user.wishList || [] } })
+          .toArray();
+        res.status(200).send(wishList);
+      }
+    );
+      // remove from wishList by buyer
+      app.delete("/wishList/remove", async (req, res) => {
+        const { userEmail, productId } = req.body;
+        const result = await userCollection.updateOne(
+            { email: userEmail },
+            { $pull: { wishList: new ObjectId(String(productId)) } }
+        );
+        res.send(result);
+    });
+    // add to Cart list by buyer
+    app.patch("/cart/add", verifyJWT, verifyBuyerToken, async (req, res) => {
+      const { userEmail, productId } = req.body;
+      const result = await userCollection.updateOne(
+        { email: userEmail },
+        { $addToSet: { withList: new ObjectId(String(productId)) } }
+      );
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
