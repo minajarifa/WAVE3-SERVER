@@ -36,6 +36,17 @@ const verifySellarToken = async (req, res, next) => {
   next();
 };
 
+// Buyer varification
+const verifyBuyerToken = async (req, res, next) => {
+  const email = req.decode.email;
+  const query = { email: email };
+  const user = await userCollection.findOne(query);
+  if (user?.role !== "buyer") {
+    return res.send({ message: "Forbiden Access" });
+  }
+  next();
+};
+
 // mongodb
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.63qrdth.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -55,7 +66,7 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    //post users in register
+    //post users by register
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -83,7 +94,7 @@ async function run() {
       verifySellarToken,
       async (req, res) => {
         const product = req.body;
-        const result = await productsCollection.insertOne(product);
+        const result = await productCollection.insertOne(product);
         res.send(result);
       }
     );
