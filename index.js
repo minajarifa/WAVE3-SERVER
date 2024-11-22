@@ -6,7 +6,17 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.port || 4000;
 // middleware
-app.use(cors({ origin: "http://localhost:5173", optionSuccessStatus: 200 }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "https://wave3-4b933.firebaseapp.com",
+      "https://wave3-4b933.web.app/",
+    ],
+    optionSuccessStatus: 200,
+  })
+);
 app.use(express.json());
 
 // token verification
@@ -65,7 +75,7 @@ const userCollection = client.db("WAVE3").collection("users");
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     //post users by register
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -180,21 +190,44 @@ async function run() {
         res.status(200).send(wishList);
       }
     );
-      // remove from wishList by buyer
-      app.delete("/wishList/remove", async (req, res) => {
-        const { userEmail, productId } = req.body;
-        const result = await userCollection.updateOne(
-            { email: userEmail },
-            { $pull: { wishList: new ObjectId(String(productId)) } }
-        );
-        res.send(result);
-    });
-    // add to Cart list by buyer
-    app.patch("/cart/add", verifyJWT, verifyBuyerToken, async (req, res) => {
+    // remove from wishList by buyer
+    app.delete("/wishList/remove", async (req, res) => {
       const { userEmail, productId } = req.body;
       const result = await userCollection.updateOne(
         { email: userEmail },
-        { $addToSet: { withList: new ObjectId(String(productId)) } }
+        { $pull: { wishList: new ObjectId(String(productId)) } }
+      );
+      res.send(result);
+    });
+    // add to Cart list by buyer
+    app.patch("/card/add", async (req, res) => {
+      const { userEmail, productId } = req.body;
+      const result = await userCollection.updateOne(
+        { email: userEmail },
+        { $addToSet: { card: new ObjectId(String(productId)) } }
+      );
+      res.send(result);
+    });
+    // get data from card lish by buyer
+    app.get("/card/:userId", verifyJWT, verifyBuyerToken, async (req, res) => {
+      const userId = req.params.userId;
+      const user = await userCollection.findOne({
+        _id: new ObjectId(userId),
+      });
+      if (!user) {
+        return res.status(404).send({ message: "User not found" });
+      }
+      const card = await productCollection
+        .find({ _id: { $in: user.card || [] } })
+        .toArray();
+      res.status(200).send(card);
+    });
+    // remove from cardList by buyer
+    app.delete("/card/remove", async (req, res) => {
+      const { userEmail, productId } = req.body;
+      const result = await userCollection.updateOne(
+        { email: userEmail },
+        { $pull: { card: new ObjectId(String(productId)) } }
       );
       res.send(result);
     });
