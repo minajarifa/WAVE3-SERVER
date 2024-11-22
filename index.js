@@ -99,6 +99,58 @@ async function run() {
       }
     );
 
+    //  get All Products
+    app.get("/all-products", async (req, res) => {
+      // name searching
+      // sort by price
+      // filter by category
+      // filter by brand
+      const {
+        title,
+        sort,
+        category: categoryFilter,
+        brand: brandFilter,
+        // page = 1,
+        // limit = 9,
+      } = req.query;
+      const query = {};
+      if (title) {
+        query.title = { $regex: title, $options: "i" };
+      }
+      if (categoryFilter) {
+        query.category = { $regex: categoryFilter, $options: "i" };
+      }
+      if (brandFilter) {
+        query.brand = brandFilter;
+      }
+      // const pageNumber = Number(page);
+      // const limitNumber = Number(limit);
+      const sortOption = sort === "asc" ? 1 : -1;
+      const products = await productCollection
+        .find(query)
+        .skip((pageNumber - 1) * limitNumber)
+        .limit(limitNumber)
+        .sort({ price: sortOption })
+        .toArray();
+      const totalProodacts = await productCollection.countDocuments(query);
+
+      const productInfo = await productCollection
+        .find({}, { projection: { category: 1, brand: 1 } })
+        .toArray();
+      const categoryList = [
+        ...new Set(productInfo.map((product) => product.category)),
+      ];
+      const brandList = [
+        ...new Set(productInfo.map((product) => product.brand)),
+      ];
+
+      res.json({
+        products,
+        brand: brandList,
+        category: categoryList,
+        totalProodacts,
+      });
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
