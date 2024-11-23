@@ -143,6 +143,15 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+    // get all useUserData
+    app.get("/users", async (req, res) => {
+      // const query = { email: req.params.email };
+      const user = await userCollection.find().toArray();
+      if (!user) {
+        return res.send({ message: "No user found" });
+      }
+      res.send(user);
+    });
 
     // get useUserData
     app.get("/user/:email", async (req, res) => {
