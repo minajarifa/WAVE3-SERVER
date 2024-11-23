@@ -9,6 +9,7 @@ const port = process.env.port || 4000;
 app.use(
   cors({
     origin: [
+      // "https://wave3-server.vercel.app",
       "http://localhost:5173",
       "http://localhost:5174",
       "https://wave3-4b933.firebaseapp.com",
@@ -38,6 +39,7 @@ const verifyJWT = (req, res, next) => {
 // seller varification
 const verifySellarToken = async (req, res, next) => {
   const email = req.decode.email;
+  console.log(email);
   const query = { email: email };
   const user = await userCollection.findOne(query);
   if (user?.role !== "seller") {
@@ -59,7 +61,7 @@ const verifyBuyerToken = async (req, res, next) => {
 
 // mongodb
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.63qrdth.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-
+// const uri = `mongodb://localhost:27017`
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -76,6 +78,60 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
+
+    // get all seller product
+    app.get("/my-products", async (req, res) => {
+      // const email =req.params.email;
+      // const query ={"sellerEmail":email}
+      const result = await productCollection.find().toArray();
+      res.send(result);
+    });
+    // get  product of a sellerUser
+    app.get("/my-products/:email", async (req, res) => {
+      const email = req.params.email;
+      console.log(email)
+      const query = { sellerEmail: email };
+      const result = await productCollection.find(query).toArray();
+      res.send(result);
+    });
+  
+   // get a single product of a sellerUser
+   app.get("/my-product/:id", async (req, res) => {
+    const id = req.params.id;
+    console.log(id)
+    const query = { _id: new ObjectId(id) };
+    const result = await productCollection.findOne(query);
+    res.send(result);
+  });
+    // delete a product by sellerUser TODO
+    app.delete("/delete/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.deleteOne(query);
+      res.send(result)
+    });
+      
+    // update a product by sellerUser TODO
+    app.put("/my-product/:id", async (req, res) => {
+      const id = req.params.id;
+      const productData = req.body;
+      const query = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          ...productData,
+        },
+      };
+      const result = await productCollection.updateOne(
+        query,
+        updatedDoc,
+        options
+      );
+      
+     
+      res.send(result);
+    });
+
     //post users by register
     app.post("/users", async (req, res) => {
       const user = req.body;
