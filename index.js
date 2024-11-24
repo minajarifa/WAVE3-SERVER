@@ -9,6 +9,7 @@ const port = process.env.port || 4000;
 app.use(
   cors({
     origin: [
+     " https://wave3-client.vercel.app",
       // "https://wave3-server.vercel.app",
       "http://localhost:5173",
       "http://localhost:5174",
@@ -39,10 +40,22 @@ const verifyJWT = (req, res, next) => {
 // seller varification
 const verifySellarToken = async (req, res, next) => {
   const email = req.decode.email;
-  console.log(email);
+  // console.log(email);
   const query = { email: email };
   const user = await userCollection.findOne(query);
   if (user?.role !== "seller") {
+    return res.send({ message: "Forbiden Access" });
+  }
+  next();
+};
+
+// seller varification
+const verifyAdminToken = async (req, res, next) => {
+  const email = req.decode.email;
+  // console.log(email);
+  const query = { email: email };
+  const user = await userCollection.findOne(query);
+  if (user?.role !== "admin") {
     return res.send({ message: "Forbiden Access" });
   }
   next();
@@ -89,29 +102,29 @@ async function run() {
     // get  product of a sellerUser
     app.get("/my-products/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email)
+      // console.log(email);
       const query = { sellerEmail: email };
       const result = await productCollection.find(query).toArray();
       res.send(result);
     });
-  
-   // get a single product of a sellerUser
-   app.get("/my-product/:id", async (req, res) => {
-    const id = req.params.id;
-    console.log(id)
-    const query = { _id: new ObjectId(id) };
-    const result = await productCollection.findOne(query);
-    res.send(result);
-  });
-    // delete a product by sellerUser TODO
+
+    // get a single product of a sellerUser
+    app.get("/my-product/:id", async (req, res) => {
+      const id = req.params.id;
+      // console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.findOne(query);
+      res.send(result);
+    });
+    // delete a product by sellerUser
     app.delete("/delete/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await productCollection.deleteOne(query);
-      res.send(result)
+      res.send(result);
     });
-      
-    // update a product by sellerUser TODO
+
+    // update a product by sellerUser
     app.put("/my-product/:id", async (req, res) => {
       const id = req.params.id;
       const productData = req.body;
@@ -127,8 +140,7 @@ async function run() {
         updatedDoc,
         options
       );
-      
-     
+
       res.send(result);
     });
 
@@ -151,6 +163,43 @@ async function run() {
         return res.send({ message: "No user found" });
       }
       res.send(user);
+    });
+
+    // get a useUserData by id
+    app.get("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const user = await userCollection.findOne(query);
+      if (!id) {
+        return res.send({ message: "No user found" });
+      }
+      res.send(user);
+    });
+    // get a useUserData by id
+    app.delete("/deletes/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const user = await userCollection.deleteOne(query);
+      console.log(user);
+      res.send(user);
+    });
+    // update a users role_______________________
+    app.put("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const userData = req.body;
+      const query = { _iid:new ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          ...userData,
+        },
+      };
+      const result = await userCollection.updateOne(
+        query,
+        updatedDoc,
+        options
+      );
+      res.send(result);
     });
 
     // get useUserData
@@ -311,25 +360,18 @@ run().catch(console.dir);
 
 // api
 app.get("/", (req, res) => {
-  res.send("server is running by gadget shop");
+res.send("server is running by gadget shop");
 });
 // jwt in onAuthStateChange
 app.post("/authentication", (req, res) => {
   const useEmail = req.body;
   const token = jwt.sign(useEmail, process.env.ACCESS_KEY_TOKEN, {
     expiresIn: "10d",
-  });
+});
   res.send({ token });
 });
 app.listen(port, () => {
   console.log(`server is running by gadget shop on port, ${port}`);
 });
 
-// arifa@gmail.com
-// asma@gmail.com
-// Password123!
-// git add .
-// git commit -m "    "
-// git push
-// npm run dev
-// nodemon
+
